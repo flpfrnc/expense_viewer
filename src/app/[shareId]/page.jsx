@@ -1,0 +1,75 @@
+import Header from '@/components/Header';
+import InstallmentCard from '@/components/InstallmentCard';
+import OneTimeExpense from '@/components/OneTimeExpense';
+import HistoryAccordion from '@/components/HistoryAccordion';
+import { getDashboardData } from '@/actions/dashboard';
+import { initialData } from '@/data/initialData';
+import { notFound } from 'next/navigation';
+
+export default async function ViewDashboard({ params, searchParams }) {
+  // Se o valor digitado na URL nao bater com a key do seu .env, da pagina 404 Nao Encontrada
+  const secretKey = process.env.SHAREABLE_UUID_KEY;
+  if (params.shareId !== secretKey) {
+    notFound(); 
+  }
+
+  const { dashboardId } = searchParams;
+
+  let dashboardData;
+  
+  if (dashboardId) {
+    try {
+      dashboardData = await getDashboardData(dashboardId);
+    } catch (error) {
+      console.error("Database not connected yet, falling back to static data.");
+    }
+  }
+
+  const data = dashboardData || initialData;
+
+  return (
+    <main className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold text-slate-800">Expense Viewer</h1>
+          <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest shadow-sm">
+            Read Only
+          </span>
+        </div>
+
+        <Header total={data.summary.totalCurrentMonth} title="Shared Month Forecast" />
+
+        <section>
+          <h2 className="text-xl font-bold text-slate-800 mb-4">Installment Expenses</h2>
+          <div>
+            {data.installmentExpenses?.map((expense, idx) => (
+              <InstallmentCard key={expense.id || idx} expense={expense} isReadOnly={true} />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-bold text-slate-800 mb-4">One-Time Expenses</h2>
+          <div>
+            {data.oneTimeExpenses?.map((expense, idx) => (
+              <OneTimeExpense key={expense.id || idx} expense={expense} isReadOnly={true} />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-bold text-slate-800 mb-4">Monthly History</h2>
+          <div>
+            {data.timeline?.map((item, idx) => (
+              <HistoryAccordion key={item.id || idx} historyItem={item} isReadOnly={true} />
+            ))}
+          </div>
+        </section>
+
+        <div className="text-center pt-8 pb-4">
+          <p className="text-slate-400 text-sm">Powered by Felipe's Dashboard</p>
+        </div>
+      </div>
+    </main>
+  );
+}
