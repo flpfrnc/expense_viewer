@@ -1,7 +1,8 @@
 'use client';
 import React, { useTransition } from 'react';
 import { formatCurrency } from '@/utils/currency';
-import { toggleOneTimeExpenseStatus } from '@/actions/dashboard';
+import { toggleOneTimeExpenseStatus, deleteOneTimeExpense } from '@/actions/dashboard';
+import { Trash } from 'lucide-react';
 import { CheckCircle, Circle } from 'lucide-react';
 
 export default function OneTimeExpense({ expense, isReadOnly }) {
@@ -15,6 +16,14 @@ export default function OneTimeExpense({ expense, isReadOnly }) {
   };
 
   const isPaid = expense.status === 'paid';
+
+  const handleDelete = () => {
+    if (!expense.id || isReadOnly) return;
+    if (!confirm(`Delete "${expense.name}"? This action cannot be undone.`)) return;
+    startTransition(() => {
+      deleteOneTimeExpense(expense.id);
+    });
+  };
 
   return (
     <div className={`flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-2 transition-all ${isPaid ? 'opacity-70' : ''}`}>
@@ -36,6 +45,11 @@ export default function OneTimeExpense({ expense, isReadOnly }) {
         <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${isPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
           {expense.status || 'pending'}
         </span>
+        {!isReadOnly && (
+          <button onClick={handleDelete} className="p-1 text-red-500 hover:bg-red-50 rounded-md ml-2" title="Delete expense">
+            <Trash className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </div>
   );

@@ -1,8 +1,8 @@
 'use client';
 import React, { useTransition } from 'react';
 import { formatCurrency } from '@/utils/currency';
-import { incrementInstallment } from '@/actions/dashboard';
-import { Plus } from 'lucide-react';
+import { incrementInstallment, deleteInstallmentExpense } from '@/actions/dashboard';
+import { Plus, Trash } from 'lucide-react';
 
 export default function InstallmentCard({ expense, isReadOnly }) {
   const [isPending, startTransition] = useTransition();
@@ -13,6 +13,14 @@ export default function InstallmentCard({ expense, isReadOnly }) {
     if (!expense.id || isFullyPaid || isReadOnly) return;
     startTransition(() => {
       incrementInstallment(expense.id, expense.paid_installments, expense.installments);
+    });
+  };
+
+  const handleDelete = () => {
+    if (!expense.id || isReadOnly) return;
+    if (!confirm(`Delete "${expense.name}"? This action cannot be undone.`)) return;
+    startTransition(() => {
+      deleteInstallmentExpense(expense.id);
     });
   };
 
@@ -32,6 +40,11 @@ export default function InstallmentCard({ expense, isReadOnly }) {
               title="Mark next installment as paid"
             >
               <Plus className="w-4 h-4" />
+            </button>
+          )}
+          {!isReadOnly && (
+            <button onClick={handleDelete} className="p-1 text-red-500 hover:bg-red-50 rounded-md" title="Delete installment">
+              <Trash className="w-4 h-4" />
             </button>
           )}
         </div>

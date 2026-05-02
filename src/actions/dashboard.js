@@ -35,7 +35,7 @@ export async function getDashboardData(dashboardId) {
 }
 
 // 2. Add One-Time Expense
-export async function addOneTimeExpense(expense, dashboardId) {
+export async function addOneTimeExpense(dashboardId, expense) {
   const { data, error } = await supabase
     .from('one_time_expenses')
     .insert([{
@@ -52,7 +52,7 @@ export async function addOneTimeExpense(expense, dashboardId) {
 }
 
 // 4. Add Installment Expense
-export async function addInstallmentExpense(expense, dashboardId) {
+export async function addInstallmentExpense(dashboardId, expense) {
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -134,4 +134,21 @@ export async function toggleMonthlyHistoryStatus(historyId, currentStatus) {
   const newStatus = currentStatus === 'paid' ? 'pending' : 'paid';
   await supabase.from('monthly_history').update({ status: newStatus }).eq('id', historyId);
   revalidatePath('/');
+}
+
+// 6. Deletion Operations
+export async function deleteOneTimeExpense(expenseId) {
+  if (!supabase) return;
+  const { error } = await supabase.from('one_time_expenses').delete().eq('id', expenseId);
+  if (error) throw new Error(error.message);
+  revalidatePath('/');
+  return true;
+}
+
+export async function deleteInstallmentExpense(expenseId) {
+  if (!supabase) return;
+  const { error } = await supabase.from('installment_expenses').delete().eq('id', expenseId);
+  if (error) throw new Error(error.message);
+  revalidatePath('/');
+  return true;
 }
