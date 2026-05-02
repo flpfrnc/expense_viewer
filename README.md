@@ -30,8 +30,8 @@ Antes de começar, você precisará de:
 
 1.  **Clone o repositório:**
     ```bash
-    git clone https://github.com/seu-usuario/my-expenses.git
-    cd my-expenses
+    git clone https://github.com/flpfrnc/expense_viewer.git
+    cd expense_viewer
     ```
 
 2.  **Instale as dependências:**
