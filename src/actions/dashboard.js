@@ -92,24 +92,32 @@ async function syncInstallmentHistoryDetail(dashboardId, expense, paidInstallmen
   const installmentStatus = paidInstallments > 0 ? 'paid' : 'pending';
 
   if (paidInstallments <= 0) {
-    // Create/update with pending status instead of deleting
-    const pendingDetail = {
-      expenseId: expense.id,
-      detailKey,
-      name: `${expense.name} (${paidInstallments}/${expense.installments})`,
-      amount: expense.installment_amount,
-      status: 'pending',
-      includeInTotal: true,
-      kind: 'installment',
-      installmentNumber: paidInstallments,
-      installmentTotal: expense.installments,
-    };
-
+    // When decrementing, preserve the existing installment number from history
+    // Only change status to pending and excludeFromTotal
     if (existingIndex >= 0) {
+      const existingDetail = details[existingIndex];
+      const pendingDetail = {
+        ...existingDetail,
+        status: 'pending',
+        includeInTotal: false,
+      };
       details[existingIndex] = pendingDetail;
     } else {
       // Don't add pending entries if history doesn't exist yet
       if (!currentHistory) return;
+      
+      // If no existing detail, create one with 0 installments (shouldn't normally happen)
+      const pendingDetail = {
+        expenseId: expense.id,
+        detailKey,
+        name: `${expense.name} (0/${expense.installments})`,
+        amount: expense.installment_amount,
+        status: 'pending',
+        includeInTotal: false,
+        kind: 'installment',
+        installmentNumber: 0,
+        installmentTotal: expense.installments,
+      };
       details.push(pendingDetail);
     }
   } else {
