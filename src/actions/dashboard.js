@@ -512,16 +512,90 @@ export async function toggleMonthlyHistoryStatus(historyId, currentStatus) {
 // 6. Deletion Operations
 export async function deleteOneTimeExpense(expenseId) {
   if (!supabase) return;
-  const { error } = await supabase.from('one_time_expenses').delete().eq('id', expenseId);
-  if (error) throw new Error(error.message);
+
+  // Get the expense to find dashboard_id
+  const { data: expense, error: fetchError } = await supabase
+    .from('one_time_expenses')
+    .select('id, dashboard_id')
+    .eq('id', expenseId)
+    .single();
+  if (fetchError) throw new Error(fetchError.message);
+
+  // Delete from one_time_expenses
+  const { error: deleteError } = await supabase.from('one_time_expenses').delete().eq('id', expenseId);
+  if (deleteError) throw new Error(deleteError.message);
+
+  // Remove from monthly_history details
+  if (expense?.dashboard_id) {
+    const { data: histories } = await supabase
+      .from('monthly_history')
+      .select('*')
+      .eq('dashboard_id', expense.dashboard_id);
+
+    for (const history of histories || []) {
+      const details = parseDetails(history.details);
+      const filteredDetails = details.filter((detail) => !(detail.expenseId && String(detail.expenseId) === String(expenseId)));
+
+      if (filteredDetails.length !== details.length) {
+        const totalAmount = filteredDetails.reduce((sum, item) => {
+          if (item.includeInTotal === false) return sum;
+          return sum + (Number(item.amount) || 0);
+        }, 0);
+
+        const { error: updateError } = await supabase
+          .from('monthly_history')
+          .update({ details: filteredDetails, total_amount: totalAmount })
+          .eq('id', history.id);
+        if (updateError) throw new Error(updateError.message);
+      }
+    }
+  }
+
   revalidatePath('/');
   return true;
 }
 
 export async function deleteInstallmentExpense(expenseId) {
   if (!supabase) return;
-  const { error } = await supabase.from('installment_expenses').delete().eq('id', expenseId);
-  if (error) throw new Error(error.message);
+
+  // Get the expense to find dashboard_id
+  const { data: expense, error: fetchError } = await supabase
+    .from('installment_expenses')
+    .select('id, dashboard_id')
+    .eq('id', expenseId)
+    .single();
+  if (fetchError) throw new Error(fetchError.message);
+
+  // Delete from installment_expenses
+  const { error: deleteError } = await supabase.from('installment_expenses').delete().eq('id', expenseId);
+  if (deleteError) throw new Error(deleteError.message);
+
+  // Remove from monthly_history details
+  if (expense?.dashboard_id) {
+    const { data: histories } = await supabase
+      .from('monthly_history')
+      .select('*')
+      .eq('dashboard_id', expense.dashboard_id);
+
+    for (const history of histories || []) {
+      const details = parseDetails(history.details);
+      const filteredDetails = details.filter((detail) => !(detail.expenseId && String(detail.expenseId) === String(expenseId)));
+
+      if (filteredDetails.length !== details.length) {
+        const totalAmount = filteredDetails.reduce((sum, item) => {
+          if (item.includeInTotal === false) return sum;
+          return sum + (Number(item.amount) || 0);
+        }, 0);
+
+        const { error: updateError } = await supabase
+          .from('monthly_history')
+          .update({ details: filteredDetails, total_amount: totalAmount })
+          .eq('id', history.id);
+        if (updateError) throw new Error(updateError.message);
+      }
+    }
+  }
+
   revalidatePath('/');
   return true;
 }
