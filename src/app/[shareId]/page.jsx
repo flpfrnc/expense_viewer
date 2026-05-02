@@ -2,6 +2,8 @@ import Header from '@/components/Header';
 import InstallmentCard from '@/components/InstallmentCard';
 import OneTimeExpense from '@/components/OneTimeExpense';
 import HistoryAccordion from '@/components/HistoryAccordion';
+import ReadOnlyBadge from '@/components/ReadOnlyBadge';
+import LocalizedHeading from '@/components/LocalizedHeading';
 import { getDashboardData } from '@/actions/dashboard';
 import { initialData } from '@/data/initialData';
 import { notFound } from 'next/navigation';
@@ -32,15 +34,14 @@ export default async function ViewDashboard({ params, searchParams }) {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold text-slate-800">Expense Viewer</h1>
-          <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest shadow-sm">
-            Read Only
-          </span>
+          {/* localized read-only badge */}
+          <ReadOnlyBadge />
         </div>
 
-        <Header total={data.summary.totalCurrentMonth} title="Shared Month Forecast" />
+        <Header total={data.summary.totalCurrentMonth} titleKey="sharedMonthForecast" />
 
         <section>
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Installment Expenses</h2>
+          <LocalizedHeading k="installmentExpenses" className="text-xl font-bold text-slate-800 mb-4">Installment Expenses</LocalizedHeading>
           <div>
             {data.installmentExpenses?.map((expense, idx) => (
               <InstallmentCard key={expense.id || idx} expense={expense} isReadOnly={true} />
@@ -49,7 +50,7 @@ export default async function ViewDashboard({ params, searchParams }) {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-slate-800 mb-4">One-Time Expenses</h2>
+          <LocalizedHeading k="oneTimeExpenses" className="text-xl font-bold text-slate-800 mb-4">One-Time Expenses</LocalizedHeading>
           <div>
             {data.oneTimeExpenses?.map((expense, idx) => (
               <OneTimeExpense key={expense.id || idx} expense={expense} isReadOnly={true} />
@@ -58,7 +59,7 @@ export default async function ViewDashboard({ params, searchParams }) {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Monthly History</h2>
+          <LocalizedHeading k="monthlyHistory" className="text-xl font-bold text-slate-800 mb-4">Monthly History</LocalizedHeading>
           <div>
             {data.timeline?.map((item, idx) => (
               <HistoryAccordion key={item.id || idx} historyItem={item} isReadOnly={true} />

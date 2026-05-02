@@ -3,8 +3,10 @@
 import React, { useState } from 'react';
 import { addOneTimeExpense, addInstallmentExpense } from '@/actions/dashboard';
 import { PlusCircle, X } from 'lucide-react';
+import { useLocale } from './LocaleProvider';
 
 export default function AddExpense({ dashboardId }) {
+  const { t } = useLocale();
   const [isOpen, setIsOpen] = useState(false);
   const [expenseType, setExpenseType] = useState('one-time'); // 'one-time' or 'installment'
   const [loading, setLoading] = useState(false);
@@ -17,7 +19,7 @@ export default function AddExpense({ dashboardId }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!dashboardId) return alert('No dashboard selected.');
+    if (!dashboardId) return alert(t('selectDashboard'));
     setLoading(true);
 
     try {
@@ -65,7 +67,7 @@ export default function AddExpense({ dashboardId }) {
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-medium transition-colors shadow-sm"
         >
           <PlusCircle className="w-5 h-5" />
-          Add New Expense
+          {t('addNewExpense')}
         </button>
       ) : (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative">
@@ -76,26 +78,26 @@ export default function AddExpense({ dashboardId }) {
             <X className="w-5 h-5" />
           </button>
           
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Add New Expense</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-4">{t('addNewExpense')}</h2>
           
           <div className="flex gap-4 mb-6">
             <button
               onClick={() => setExpenseType('one-time')}
               className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${expenseType === 'one-time' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
-              One-Time
+              {t('oneTime')}
             </button>
             <button
               onClick={() => setExpenseType('installment')}
               className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${expenseType === 'installment' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
-              Installment
+              {t('installment')}
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Expense Name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('expenseName')}</label>
               <input 
                 required
                 type="text" 
@@ -108,7 +110,7 @@ export default function AddExpense({ dashboardId }) {
             
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                {expenseType === 'installment' ? 'Total Amount (R$)' : 'Amount (R$)'}
+                {expenseType === 'installment' ? t('totalAmount') : t('amount')}
               </label>
               <input 
                 required
@@ -123,7 +125,7 @@ export default function AddExpense({ dashboardId }) {
 
             {expenseType === 'installment' && (
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Number of Installments</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('installments')}</label>
                 <input 
                   required
                   type="number"
@@ -138,14 +140,14 @@ export default function AddExpense({ dashboardId }) {
 
             {expenseType === 'one-time' && (
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('status')}</label>
                 <select 
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-800 bg-white"
                 >
-                  <option value="pending">Pending</option>
-                  <option value="paid">Paid</option>
+                  <option value="pending">{t('pending')}</option>
+                  <option value="paid">{t('paid')}</option>
                 </select>
               </div>
             )}
@@ -155,7 +157,7 @@ export default function AddExpense({ dashboardId }) {
               type="submit" 
               className="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2.5 rounded-lg transition-colors mt-2 disabled:opacity-50"
             >
-              {loading ? 'Adding...' : 'Save Expense'}
+              {loading ? '...' : t('saveExpense')}
             </button>
           </form>
         </div>

@@ -3,9 +3,11 @@ import React, { useTransition } from 'react';
 import { formatCurrency } from '@/utils/currency';
 import { toggleMonthlyHistoryStatus } from '@/actions/dashboard';
 import { ChevronDown, CheckCircle, Circle } from 'lucide-react';
+import { useLocale } from './LocaleProvider';
 
 export default function HistoryAccordion({ historyItem, isReadOnly }) {
   const [isPending, startTransition] = useTransition();
+  const { t } = useLocale();
 
   const detailsArray = typeof historyItem.details === 'string'
     ? JSON.parse(historyItem.details) : historyItem.details;
@@ -36,13 +38,13 @@ export default function HistoryAccordion({ historyItem, isReadOnly }) {
               className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold hover:bg-slate-100 transition-colors disabled:opacity-50"
             >
               {isPaid ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-amber-500" />}
-              <span className={isPaid ? 'text-green-700' : 'text-amber-700'}>{historyItem.status || 'pending'}</span>
+              <span className={isPaid ? 'text-green-700' : 'text-amber-700'}>{historyItem.status || t('pending')}</span>
             </button>
           )}
           {isReadOnly && (
              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold">
                {isPaid ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-amber-500" />}
-               <span className={isPaid ? 'text-green-700' : 'text-amber-700'}>{historyItem.status || 'pending'}</span>
+               <span className={isPaid ? 'text-green-700' : 'text-amber-700'}>{historyItem.status || t('pending')}</span>
              </div>
           )}
         </div>

@@ -1,4 +1,5 @@
 import './globals.css';
+import { LocaleProvider } from '@/components/LocaleProvider';
 
 export const metadata = {
   title: 'Expense Viewer',
@@ -9,7 +10,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="bg-slate-50 text-slate-800">
-        {children}
+        <LocaleProvider>
+          {children}
+        </LocaleProvider>
       </body>
     </html>
   );

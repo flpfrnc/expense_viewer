@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createDashboard } from '@/actions/dashboard';
 import { PlusCircle } from 'lucide-react';
+import { useLocale } from './LocaleProvider';
 
 export default function DashboardSelector({ dashboards, activeId }) {
+  const { t } = useLocale();
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -41,7 +43,7 @@ export default function DashboardSelector({ dashboards, activeId }) {
         <input 
           autoFocus
           className="flex-1 px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="New Dashboard Name (e.g. John's Debt)" 
+          placeholder={t('createNew')}
           value={newName}
           onChange={e => setNewName(e.target.value)}
           required
@@ -51,7 +53,7 @@ export default function DashboardSelector({ dashboards, activeId }) {
           disabled={loading}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium whitespace-nowrap disabled:opacity-50"
         >
-          {loading ? '...' : 'Create'}
+          {loading ? '...' : t('create')}
         </button>
         {dashboards.length > 0 && (
           <button 
@@ -59,7 +61,7 @@ export default function DashboardSelector({ dashboards, activeId }) {
             onClick={() => setIsCreating(false)}
             className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg font-medium whitespace-nowrap"
           >
-            Cancel
+            {t('cancel')}
           </button>
         )}
       </form>
@@ -68,7 +70,7 @@ export default function DashboardSelector({ dashboards, activeId }) {
 
   return (
     <div className="mb-6 flex items-center gap-3">
-      <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Select Dashboard:</label>
+      <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">{t('selectDashboard')}</label>
       <div className="relative inline-block w-48">
         <select 
           value={activeId} 
@@ -79,7 +81,7 @@ export default function DashboardSelector({ dashboards, activeId }) {
             <option key={db.id} value={db.id}>{db.name}</option>
           ))}
           <option value="new" className="font-bold text-blue-600">
-            + Create New
+            {t('createNew')}
           </option>
         </select>
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">

@@ -3,10 +3,12 @@ import React, { useTransition } from 'react';
 import { formatCurrency } from '@/utils/currency';
 import { toggleOneTimeExpenseStatus, deleteOneTimeExpense } from '@/actions/dashboard';
 import { Trash } from 'lucide-react';
+import { useLocale } from './LocaleProvider';
 import { CheckCircle, Circle } from 'lucide-react';
 
 export default function OneTimeExpense({ expense, isReadOnly }) {
   const [isPending, startTransition] = useTransition();
+  const { t } = useLocale();
 
   const handleToggle = () => {
     if (!expense.id || isReadOnly) return; // If local only
@@ -19,7 +21,7 @@ export default function OneTimeExpense({ expense, isReadOnly }) {
 
   const handleDelete = () => {
     if (!expense.id || isReadOnly) return;
-    if (!confirm(`Delete "${expense.name}"? This action cannot be undone.`)) return;
+    if (!confirm(t('deleteConfirm', { name: expense.name }))) return;
     startTransition(() => {
       deleteOneTimeExpense(expense.id);
     });
@@ -33,7 +35,7 @@ export default function OneTimeExpense({ expense, isReadOnly }) {
             onClick={handleToggle} 
             disabled={isPending}
             className="text-slate-400 hover:text-blue-600 transition-colors disabled:opacity-50"
-            title={isPaid ? "Mark as pending" : "Mark as paid"}
+            title={isPaid ? t('markAsPending') : t('markAsPaid')}
           >
             {isPaid ? <CheckCircle className="w-5 h-5 text-green-500" /> : <Circle className="w-5 h-5" />}
           </button>
@@ -43,10 +45,10 @@ export default function OneTimeExpense({ expense, isReadOnly }) {
       <div className="flex items-center gap-3">
         <span className="font-semibold text-slate-800">{formatCurrency(expense.amount)}</span>
         <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${isPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-          {expense.status || 'pending'}
+          {t(expense.status) || t('pending')}
         </span>
         {!isReadOnly && (
-          <button onClick={handleDelete} className="p-1 text-red-500 hover:bg-red-50 rounded-md ml-2" title="Delete expense">
+          <button onClick={handleDelete} className="p-1 text-red-500 hover:bg-red-50 rounded-md ml-2" title={t('deleteExpense')}>
             <Trash className="w-4 h-4" />
           </button>
         )}

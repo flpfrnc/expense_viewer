@@ -3,9 +3,11 @@ import React, { useTransition } from 'react';
 import { formatCurrency } from '@/utils/currency';
 import { incrementInstallment, deleteInstallmentExpense } from '@/actions/dashboard';
 import { Plus, Trash } from 'lucide-react';
+import { useLocale } from './LocaleProvider';
 
 export default function InstallmentCard({ expense, isReadOnly }) {
   const [isPending, startTransition] = useTransition();
+  const { t } = useLocale();
   const progress = (expense.paid_installments / expense.installments) * 100;
   const isFullyPaid = expense.paid_installments >= expense.installments;
 
@@ -18,7 +20,7 @@ export default function InstallmentCard({ expense, isReadOnly }) {
 
   const handleDelete = () => {
     if (!expense.id || isReadOnly) return;
-    if (!confirm(`Delete "${expense.name}"? This action cannot be undone.`)) return;
+    if (!confirm(t('deleteConfirm', { name: expense.name }))) return;
     startTransition(() => {
       deleteInstallmentExpense(expense.id);
     });
@@ -30,20 +32,20 @@ export default function InstallmentCard({ expense, isReadOnly }) {
         <h3 className={`font-semibold ${isFullyPaid && !isReadOnly ? 'text-slate-500 line-through' : 'text-slate-700'}`}>{expense.name}</h3>
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-slate-500">
-            {expense.paid_installments}/{expense.installments} installments
+            {t('installmentsProgress', { paid: expense.paid_installments, total: expense.installments })}
           </span>
           {!isReadOnly && (
             <button 
               onClick={handleIncrement}
               disabled={isPending || isFullyPaid}
               className="p-1 border border-slate-200 rounded-md text-blue-600 hover:bg-blue-50 disabled:opacity-30 disabled:hover:bg-transparent"
-              title="Mark next installment as paid"
+              title={t('markNextInstallment')}
             >
               <Plus className="w-4 h-4" />
             </button>
           )}
           {!isReadOnly && (
-            <button onClick={handleDelete} className="p-1 text-red-500 hover:bg-red-50 rounded-md" title="Delete installment">
+            <button onClick={handleDelete} className="p-1 text-red-500 hover:bg-red-50 rounded-md" title={t('deleteInstallment')}>
               <Trash className="w-4 h-4" />
             </button>
           )}
@@ -56,8 +58,8 @@ export default function InstallmentCard({ expense, isReadOnly }) {
         ></div>
       </div>
       <div className="flex justify-between text-sm">
-        <span className="text-slate-500">Amount per part: <strong className="text-slate-700">{formatCurrency(expense.installment_amount)}</strong></span>
-        <span className="text-slate-500">Total: {formatCurrency(expense.total_amount)}</span>
+        <span className="text-slate-500">{t('amountPerPart')} <strong className="text-slate-700">{formatCurrency(expense.installment_amount)}</strong></span>
+        <span className="text-slate-500">{t('totalLabel')} {formatCurrency(expense.total_amount)}</span>
       </div>
     </div>
   );

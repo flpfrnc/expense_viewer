@@ -5,6 +5,8 @@ import HistoryAccordion from '@/components/HistoryAccordion';
 import AddExpense from '@/components/AddExpense';
 import TopBar from '@/components/TopBar';
 import DashboardSelector from '@/components/DashboardSelector';
+import LocalizedHeading from '@/components/LocalizedHeading';
+import LocalizedParagraph from '@/components/LocalizedParagraph';
 import { getDashboardData, getDashboards } from '@/actions/dashboard';
 import { verifyAuth } from '@/actions/auth';
 import { redirect } from 'next/navigation';
@@ -49,32 +51,32 @@ export default async function Home({ searchParams }) {
         {activeDashboardId ? <AddExpense dashboardId={activeDashboardId} /> : null}
 
         <section>
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Installment Expenses</h2>
+          <LocalizedHeading k="installmentExpenses" className="text-xl font-bold text-slate-800 mb-4">Installment Expenses</LocalizedHeading>
           <div>
             {data.installmentExpenses?.map((expense, idx) => (
               <InstallmentCard key={expense.id || idx} expense={expense} />
             ))}
-            {(!data.installmentExpenses || data.installmentExpenses.length === 0) && <p className="text-slate-500">No installment expenses yet.</p>}
+            {(!data.installmentExpenses || data.installmentExpenses.length === 0) && <LocalizedParagraph k="noInstallmentExpensesYet" className="text-slate-500">No installment expenses yet.</LocalizedParagraph>}
           </div>
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-slate-800 mb-4">One-Time Expenses</h2>
+          <LocalizedHeading k="oneTimeExpenses" className="text-xl font-bold text-slate-800 mb-4">One-Time Expenses</LocalizedHeading>
           <div>
             {data.oneTimeExpenses?.map((expense, idx) => (
               <OneTimeExpense key={expense.id || idx} expense={expense} />
             ))}
-            {(!data.oneTimeExpenses || data.oneTimeExpenses.length === 0) && <p className="text-slate-500">No one-time expenses yet.</p>}
+            {(!data.oneTimeExpenses || data.oneTimeExpenses.length === 0) && <LocalizedParagraph k="noOneTimeExpensesYet" className="text-slate-500">No one-time expenses yet.</LocalizedParagraph>}
           </div>
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Monthly History</h2>
+          <LocalizedHeading k="monthlyHistory" className="text-xl font-bold text-slate-800 mb-4">Monthly History</LocalizedHeading>
           <div>
             {data.timeline?.map((item, idx) => (
               <HistoryAccordion key={item.id || idx} historyItem={item} />
             ))}
-            {(!data.timeline || data.timeline.length === 0) && <p className="text-slate-500">No history available yet.</p>}
+            {(!data.timeline || data.timeline.length === 0) && <LocalizedParagraph k="noHistoryYet" className="text-slate-500">No history available yet.</LocalizedParagraph>}
           </div>
         </section>
       </div>
