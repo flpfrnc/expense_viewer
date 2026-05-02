@@ -13,6 +13,7 @@ export default function HistoryAccordion({ historyItem, isReadOnly }) {
     ? JSON.parse(historyItem.details) : historyItem.details;
 
   const isPaid = historyItem.status === 'paid';
+  const statusLabel = t(historyItem.status) || t('pending');
 
   const handleToggleEvent = (e) => {
     e.preventDefault(); // Prevent accordion from toggling when clicking the button
@@ -38,22 +39,33 @@ export default function HistoryAccordion({ historyItem, isReadOnly }) {
               className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold hover:bg-slate-100 transition-colors disabled:opacity-50"
             >
               {isPaid ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-amber-500" />}
-              <span className={isPaid ? 'text-green-700' : 'text-amber-700'}>{historyItem.status || t('pending')}</span>
+              <span className={isPaid ? 'text-green-700' : 'text-amber-700'}>{statusLabel}</span>
             </button>
           )}
           {isReadOnly && (
              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold">
                {isPaid ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-amber-500" />}
-               <span className={isPaid ? 'text-green-700' : 'text-amber-700'}>{historyItem.status || t('pending')}</span>
+               <span className={isPaid ? 'text-green-700' : 'text-amber-700'}>{statusLabel}</span>
              </div>
           )}
         </div>
       </summary>
       <div className="px-4 pb-4 pt-2 border-t border-slate-100 bg-slate-50/50 space-y-2 rounded-b-xl">
         {detailsArray?.map((detail, idx) => (
-          <div key={idx} className="flex justify-between text-sm py-1 border-b border-slate-200/50 last:border-0">
-            <span className="text-slate-600">{detail.name}</span>
-            <span className="font-medium text-slate-700">{formatCurrency(detail.amount)}</span>
+          <div key={idx} className="flex justify-between items-center text-sm py-1 border-b border-slate-200/50 last:border-0 gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={`text-slate-600 truncate ${detail.status === 'paid' ? 'line-through text-slate-400' : ''}`}>
+                {detail.name}
+              </span>
+              {detail.status && (
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${detail.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {t(detail.status)}
+                </span>
+              )}
+            </div>
+            <span className={`font-medium ${detail.status === 'paid' ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+              {formatCurrency(detail.amount)}
+            </span>
           </div>
         ))}
       </div>
