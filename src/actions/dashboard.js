@@ -34,54 +34,135 @@ function parseDetails(details) {
 }
 
 function isOneTimeHistoryDetail(detail) {
-  if (!detail) return false;
-  if (detail.kind === 'one-time') return true;
-  const name = String(detail.name || '');
-  return !name.includes('(') && !name.includes('/') && typeof detail.amount === 'number';
+  return Boolean(detail && detail.kind === 'one-time');
 }
 
-async function syncOneTimeExpensesForHistory(historyRecord, newStatus) {
-  if (!historyRecord) return;
+function isInstallmentHistoryDetail(detail) {
+  return Boolean(detail && detail.kind === 'installment');
+}
 
-  const details = parseDetails(historyRecord.details);
-  const oneTimeDetails = details.filter(isOneTimeHistoryDetail);
-  if (oneTimeDetails.length === 0) return;
+function makeHistoryDetailKey(kind, expenseId) {
+  return `${kind}:${expenseId}`;
+}
 
-  const { data: oneTimeExpenses } = await supabase
-    .from('one_time_expenses')
-    .select('*')
-    .eq('dashboard_id', historyRecord.dashboard_id);
+function findHistoryDetailIndex(details, detail) {
+  if (!Array.isArray(details) || !detail) return -1;
 
-  const matchingExpenses = (oneTimeExpenses || []).filter((expense) =>
-    oneTimeDetails.some((detail) => detail.name === expense.name && Number(detail.amount) === Number(expense.amount))
-  );
-
-  for (const expense of matchingExpenses) {
-    const { error } = await supabase
-      .from('one_time_expenses')
-      .update({ status: newStatus })
-      .eq('id', expense.id);
-    if (error) throw new Error(error.message);
+  if (detail.detailKey) {
+    const keyIndex = details.findIndex((item) => item.detailKey === detail.detailKey);
+    if (keyIndex >= 0) return keyIndex;
   }
 
-  const updatedDetails = details.map((detail) => {
-    if (!isOneTimeHistoryDetail(detail)) return detail;
-    return { ...detail, status: newStatus };
-  });
+  if (detail.expenseId && detail.kind) {
+    const idIndex = details.findIndex((item) => item.expenseId && String(item.expenseId) === String(detail.expenseId) && item.kind === detail.kind);
+    if (idIndex >= 0) return idIndex;
+  }
 
-  const totalAmount = updatedDetails.reduce((sum, item) => {
+  return -1;
+}
+
+function isOrphanInstallmentDetail(detail) {
+  if (!detail) return false;
+  if (detail.expenseId || detail.detailKey) return false;
+  return detail.kind === 'installment' || /\d+\/\d+/.test(String(detail.name || ''));
+}
+
+function getInstallmentBaseName(detailName) {
+  if (!detailName) return '';
+  const match = String(detailName).match(/^(.*?)\s*\(\d+\/\d+\)$/);
+  return match ? match[1] : detailName;
+}
+
+async function syncInstallmentHistoryDetail(dashboardId, expense, paidInstallments, monthInfo = null) {
+  // Use current month if not specified
+  const targetMonth = monthInfo || getMonthInfo(new Date());
+  
+  const { data: currentHistory } = await supabase
+    .from('monthly_history')
+    .select('*')
+    .eq('month', targetMonth.month)
+    .eq('dashboard_id', dashboardId)
+    .single();
+
+  const details = parseDetails(currentHistory?.details || []).filter((detail) => !isOrphanInstallmentDetail(detail));
+  const detailKey = `installment:${targetMonth.month}:${expense.name}`;
+  const existingIndex = details.findIndex((item) => item.detailKey === detailKey || (item.expenseId && String(item.expenseId) === String(expense.id) && item.kind === 'installment'));
+
+  // Determine the status based on whether installments are paid this month
+  const installmentStatus = paidInstallments > 0 ? 'paid' : 'pending';
+
+  if (paidInstallments <= 0) {
+    // Create/update with pending status instead of deleting
+    const pendingDetail = {
+      expenseId: expense.id,
+      detailKey,
+      name: `${expense.name} (${paidInstallments}/${expense.installments})`,
+      amount: expense.installment_amount,
+      status: 'pending',
+      includeInTotal: true,
+      kind: 'installment',
+      installmentNumber: paidInstallments,
+      installmentTotal: expense.installments,
+    };
+
+    if (existingIndex >= 0) {
+      details[existingIndex] = pendingDetail;
+    } else {
+      // Don't add pending entries if history doesn't exist yet
+      if (!currentHistory) return;
+      details.push(pendingDetail);
+    }
+  } else {
+    // Mark as paid
+    const paidDetail = {
+      expenseId: expense.id,
+      detailKey,
+      name: `${expense.name} (${paidInstallments}/${expense.installments})`,
+      amount: expense.installment_amount,
+      status: 'paid',
+      includeInTotal: true,
+      kind: 'installment',
+      installmentNumber: paidInstallments,
+      installmentTotal: expense.installments,
+    };
+
+    if (existingIndex >= 0) {
+      details[existingIndex] = paidDetail;
+    } else {
+      details.push(paidDetail);
+    }
+  }
+
+  const totalAmount = details.reduce((sum, item) => {
     if (item.includeInTotal === false) return sum;
     return sum + (Number(item.amount) || 0);
   }, 0);
 
+  if (!currentHistory) {
+    // Only create history if we have paid installments
+    if (paidInstallments <= 0) return;
+    
+    const { error } = await supabase
+      .from('monthly_history')
+      .insert([{
+        dashboard_id: dashboardId,
+        month: targetMonth.month,
+        total_amount: totalAmount,
+        details,
+        status: 'pending',
+        sort_date: targetMonth.sort_date,
+      }]);
+    if (error) throw new Error(error.message);
+    return;
+  }
+
   const { error } = await supabase
     .from('monthly_history')
     .update({
-      details: updatedDetails,
       total_amount: totalAmount,
-      status: newStatus,
+      details,
     })
-    .eq('id', historyRecord.id);
+    .eq('id', currentHistory.id);
   if (error) throw new Error(error.message);
 }
 
@@ -94,7 +175,7 @@ async function upsertMonthlyHistoryDetail(dashboardId, monthInfo, detail, option
     .single();
 
   const details = parseDetails(currentHistory?.details);
-  const existingIndex = details.findIndex((item) => item.name === detail.name);
+  const existingIndex = findHistoryDetailIndex(details, detail);
 
   if (existingIndex >= 0) {
     details[existingIndex] = detail;
@@ -203,7 +284,7 @@ export async function addOneTimeExpense(dashboardId, expense) {
   await upsertMonthlyHistoryDetail(
     dashboardId,
     monthInfo,
-    { name: data.name, amount: data.amount, status: data.status, includeInTotal: data.status !== 'paid', kind: 'one-time' },
+    { expenseId: data.id, detailKey: makeHistoryDetailKey('one-time', data.id), name: data.name, amount: data.amount, status: data.status, includeInTotal: data.status !== 'paid', kind: 'one-time' },
     { status: data.status, countInTotal: data.status !== 'paid' },
   );
 
@@ -296,7 +377,7 @@ export async function toggleOneTimeExpenseStatus(expenseId, currentStatus) {
   await upsertMonthlyHistoryDetail(
     expense.dashboard_id,
     targetMonth,
-    { name: expense.name, amount: expense.amount, status: newStatus, includeInTotal: newStatus !== 'paid', kind: 'one-time' },
+    { expenseId: expense.id, detailKey: makeHistoryDetailKey('one-time', expense.id), name: expense.name, amount: expense.amount, status: newStatus, includeInTotal: newStatus !== 'paid', kind: 'one-time' },
     { status: newStatus, countInTotal: newStatus !== 'paid' },
   );
 
@@ -318,13 +399,27 @@ export async function incrementInstallment(expenseId, currentPaid, totalInstallm
   const { error } = await supabase.from('installment_expenses').update({ paid_installments: newPaid }).eq('id', expenseId);
   if (error) throw new Error(error.message);
 
-  const monthInfo = getMonthInfo(new Date());
-  await upsertMonthlyHistoryDetail(
-    expense.dashboard_id,
-    monthInfo,
-    { name: `${expense.name} (${newPaid}/${expense.installments})`, amount: expense.installment_amount, status: 'paid', includeInTotal: true, kind: 'installment' },
-    { status: 'paid', countInTotal: true },
-  );
+  await syncInstallmentHistoryDetail(expense.dashboard_id, expense, newPaid);
+
+  revalidatePath('/');
+}
+
+export async function decrementInstallment(expenseId, currentPaid, totalInstallments) {
+  if (!supabase) return;
+  const newPaid = currentPaid - 1;
+  if (newPaid < 0) return;
+
+  const { data: expense, error: fetchError } = await supabase
+    .from('installment_expenses')
+    .select('id, dashboard_id, name, installment_amount, installments, paid_installments, created_at')
+    .eq('id', expenseId)
+    .single();
+  if (fetchError) throw new Error(fetchError.message);
+
+  const { error } = await supabase.from('installment_expenses').update({ paid_installments: newPaid }).eq('id', expenseId);
+  if (error) throw new Error(error.message);
+
+  await syncInstallmentHistoryDetail(expense.dashboard_id, expense, newPaid);
 
   revalidatePath('/');
 }
@@ -339,7 +434,78 @@ export async function toggleMonthlyHistoryStatus(historyId, currentStatus) {
     .single();
   if (fetchError) throw new Error(fetchError.message);
 
-  await syncOneTimeExpensesForHistory(historyRecord, newStatus);
+  const details = parseDetails(historyRecord.details);
+  const oneTimeDetails = details.filter(isOneTimeHistoryDetail);
+  const installmentDetails = details.filter(isInstallmentHistoryDetail);
+
+  const updatedDetails = details.map((detail) => {
+    if (isOneTimeHistoryDetail(detail)) {
+      return { ...detail, status: newStatus, includeInTotal: newStatus !== 'paid' };
+    }
+    if (isInstallmentHistoryDetail(detail)) {
+      return { ...detail, status: newStatus, includeInTotal: true };
+    }
+    return detail;
+  });
+
+  const { data: oneTimeExpenses } = await supabase
+    .from('one_time_expenses')
+    .select('*')
+    .eq('dashboard_id', historyRecord.dashboard_id);
+
+  const { data: installmentExpenses } = await supabase
+    .from('installment_expenses')
+    .select('*')
+    .eq('dashboard_id', historyRecord.dashboard_id);
+
+  for (const detail of oneTimeDetails) {
+    const matchingExpense = detail.expenseId
+      ? (oneTimeExpenses || []).find((expense) => String(expense.id) === String(detail.expenseId))
+      : (oneTimeExpenses || []).find((expense) => detail.name === expense.name && Number(detail.amount) === Number(expense.amount));
+
+    if (!matchingExpense) continue;
+
+    const { error } = await supabase
+      .from('one_time_expenses')
+      .update({ status: newStatus })
+      .eq('id', matchingExpense.id);
+    if (error) throw new Error(error.message);
+  }
+
+  for (const expense of installmentExpenses || []) {
+    const relatedCount = installmentDetails.filter((detail) => {
+      if (detail.expenseId && String(detail.expenseId) === String(expense.id)) return true;
+      return getInstallmentBaseName(detail.name) === expense.name;
+    }).length;
+
+    if (relatedCount === 0) continue;
+
+    const delta = newStatus === 'paid' ? relatedCount : -relatedCount;
+    const nextPaid = Math.min(expense.installments, Math.max(0, (expense.paid_installments || 0) + delta));
+    if (nextPaid === expense.paid_installments) continue;
+
+    const { error } = await supabase
+      .from('installment_expenses')
+      .update({ paid_installments: nextPaid })
+      .eq('id', expense.id);
+    if (error) throw new Error(error.message);
+  }
+
+  const totalAmount = updatedDetails.reduce((sum, item) => {
+    if (item.includeInTotal === false) return sum;
+    return sum + (Number(item.amount) || 0);
+  }, 0);
+
+  const { error } = await supabase
+    .from('monthly_history')
+    .update({
+      details: updatedDetails,
+      total_amount: totalAmount,
+      status: newStatus,
+    })
+    .eq('id', historyRecord.id);
+  if (error) throw new Error(error.message);
+
   revalidatePath('/');
 }
 

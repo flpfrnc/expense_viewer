@@ -1,8 +1,8 @@
 'use client';
 import React, { useTransition } from 'react';
 import { formatCurrency } from '@/utils/currency';
-import { incrementInstallment, deleteInstallmentExpense } from '@/actions/dashboard';
-import { Plus, Trash } from 'lucide-react';
+import { incrementInstallment, decrementInstallment, deleteInstallmentExpense } from '@/actions/dashboard';
+import { Plus, Minus, Trash } from 'lucide-react';
 import { useLocale } from './LocaleProvider';
 
 export default function InstallmentCard({ expense, isReadOnly }) {
@@ -15,6 +15,13 @@ export default function InstallmentCard({ expense, isReadOnly }) {
     if (!expense.id || isFullyPaid || isReadOnly) return;
     startTransition(() => {
       incrementInstallment(expense.id, expense.paid_installments, expense.installments);
+    });
+  };
+
+  const handleDecrement = () => {
+    if (!expense.id || expense.paid_installments <= 0 || isReadOnly) return;
+    startTransition(() => {
+      decrementInstallment(expense.id, expense.paid_installments, expense.installments);
     });
   };
 
@@ -34,6 +41,16 @@ export default function InstallmentCard({ expense, isReadOnly }) {
           <span className="text-sm font-medium text-slate-500">
             {t('installmentsProgress', { paid: expense.paid_installments, total: expense.installments })}
           </span>
+          {!isReadOnly && (
+            <button
+              onClick={handleDecrement}
+              disabled={isPending || expense.paid_installments <= 0}
+              className="p-1 border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent"
+              title={t('markPreviousInstallment')}
+            >
+              <Minus className="w-4 h-4" />
+            </button>
+          )}
           {!isReadOnly && (
             <button 
               onClick={handleIncrement}

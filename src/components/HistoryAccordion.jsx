@@ -15,6 +15,13 @@ export default function HistoryAccordion({ historyItem, isReadOnly }) {
   const isPaid = historyItem.status === 'paid';
   const statusLabel = t(historyItem.status) || t('pending');
 
+  const getDetailLabel = (detail) => {
+    if (detail.kind === 'installment' && detail.installmentNumber && detail.installmentTotal) {
+      return `${t('installmentDetail')} ${detail.installmentNumber}/${detail.installmentTotal}`;
+    }
+    return detail.status === 'paid' ? t('paid') : null;
+  };
+
   const handleToggleEvent = (e) => {
     e.preventDefault(); // Prevent accordion from toggling when clicking the button
     if (!historyItem.id || isReadOnly) return;
@@ -57,9 +64,9 @@ export default function HistoryAccordion({ historyItem, isReadOnly }) {
               <span className={`text-slate-600 truncate ${detail.status === 'paid' ? 'line-through text-slate-400' : ''}`}>
                 {detail.name}
               </span>
-              {detail.status && (
+              {getDetailLabel(detail) && (
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${detail.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {t(detail.status)}
+                  {getDetailLabel(detail)}
                 </span>
               )}
             </div>
