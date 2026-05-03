@@ -19,6 +19,30 @@ function getMonthInfo(value) {
   };
 }
 
+function getTargetMonthForInstallment(startMonthStr, paidInstallments) {
+  // Parse startMonthStr like "May/2026" to calculate target month
+  // If start is May/2026 and paid=0, target is May/2026
+  // If start is May/2026 and paid=1, target is Jun/2026 (next month)
+  // If start is May/2026 and paid=2, target is Jul/2026 (month after next)
+  
+  if (!startMonthStr) return getMonthInfo(new Date());
+  
+  // Parse "May/2026" format
+  const [shortMonth, year] = startMonthStr.split('/');
+  const monthMap = {
+    'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+    'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+  };
+  
+  const monthIndex = monthMap[shortMonth];
+  if (monthIndex === undefined) return getMonthInfo(new Date());
+  
+  const startDate = new Date(parseInt(year), monthIndex, 1);
+  const targetDate = new Date(startDate.getFullYear(), startDate.getMonth() + paidInstallments, 1);
+  
+  return getMonthInfo(targetDate);
+}
+
 function parseDetails(details) {
   if (!details) return [];
   if (Array.isArray(details)) return details;
@@ -73,10 +97,16 @@ function getInstallmentBaseName(detailName) {
   return match ? match[1] : detailName;
 }
 
-async function syncInstallmentHistoryDetail(dashboardId, expense, paidInstallments, monthInfo = null) {
-  // Use current month if not specified
-  const targetMonth = monthInfo || getMonthInfo(new Date());
+async function syncInstallmentHistoryDetail(dashboardId, expense, operatedInstallmentNumber, isPaid, monthInfo = null) {
+  // Calculate target month based on billing cycle
+  // The offset is the installment number - 1 (e.g., 1st installment is offset 0)
+  const targetMonthOffset = Math.max(0, operatedInstallmentNumber - 1);
   
+  const targetMonth = monthInfo ||
+    (expense?.start_month
+      ? getTargetMonthForInstallment(expense.start_month, targetMonthOffset)
+      : getMonthInfo(new Date()));
+
   const { data: currentHistory } = await supabase
     .from('monthly_history')
     .select('*')
@@ -88,10 +118,7 @@ async function syncInstallmentHistoryDetail(dashboardId, expense, paidInstallmen
   const detailKey = `installment:${targetMonth.month}:${expense.name}`;
   const existingIndex = details.findIndex((item) => item.detailKey === detailKey || (item.expenseId && String(item.expenseId) === String(expense.id) && item.kind === 'installment'));
 
-  // Determine the status based on whether installments are paid this month
-  const installmentStatus = paidInstallments > 0 ? 'paid' : 'pending';
-
-  if (paidInstallments <= 0) {
+  if (!isPaid) {
     // When decrementing, preserve the existing installment number from history
     // Only change status to pending, but keep includeInTotal true (it's still expected for this month)
     if (existingIndex >= 0) {
@@ -105,17 +132,16 @@ async function syncInstallmentHistoryDetail(dashboardId, expense, paidInstallmen
     } else {
       // Don't add pending entries if history doesn't exist yet
       if (!currentHistory) return;
-      
-      // If no existing detail, create one with 0 installments (shouldn't normally happen)
+
       const pendingDetail = {
         expenseId: expense.id,
         detailKey,
-        name: `${expense.name} (0/${expense.installments})`,
+        name: `${expense.name} (${operatedInstallmentNumber}/${expense.installments})`,
         amount: expense.installment_amount,
         status: 'pending',
         includeInTotal: true,
         kind: 'installment',
-        installmentNumber: 0,
+        installmentNumber: operatedInstallmentNumber,
         installmentTotal: expense.installments,
       };
       details.push(pendingDetail);
@@ -125,12 +151,12 @@ async function syncInstallmentHistoryDetail(dashboardId, expense, paidInstallmen
     const paidDetail = {
       expenseId: expense.id,
       detailKey,
-      name: `${expense.name} (${paidInstallments}/${expense.installments})`,
+      name: `${expense.name} (${operatedInstallmentNumber}/${expense.installments})`,
       amount: expense.installment_amount,
       status: 'paid',
       includeInTotal: true,
       kind: 'installment',
-      installmentNumber: paidInstallments,
+      installmentNumber: operatedInstallmentNumber,
       installmentTotal: expense.installments,
     };
 
@@ -148,7 +174,7 @@ async function syncInstallmentHistoryDetail(dashboardId, expense, paidInstallmen
 
   if (!currentHistory) {
     // Only create history if we have paid installments
-    if (paidInstallments <= 0) return;
+    if (!isPaid) return;
     
     const { error } = await supabase
       .from('monthly_history')
@@ -313,6 +339,7 @@ export async function addInstallmentExpense(dashboardId, expense) {
       installments: expense.installments,
       paid_installments: expense.paid_installments || 0,
       installment_amount: expense.installment_amount,
+      start_month: expense.start_month || 'May/2026',
     }])
     .select();
 
@@ -399,7 +426,7 @@ export async function incrementInstallment(expenseId, currentPaid, totalInstallm
 
   const { data: expense, error: fetchError } = await supabase
     .from('installment_expenses')
-    .select('id, dashboard_id, name, installment_amount, installments, paid_installments, created_at')
+    .select('id, dashboard_id, name, installment_amount, installments, paid_installments, created_at, start_month')
     .eq('id', expenseId)
     .single();
   if (fetchError) throw new Error(fetchError.message);
@@ -407,7 +434,8 @@ export async function incrementInstallment(expenseId, currentPaid, totalInstallm
   const { error } = await supabase.from('installment_expenses').update({ paid_installments: newPaid }).eq('id', expenseId);
   if (error) throw new Error(error.message);
 
-  await syncInstallmentHistoryDetail(expense.dashboard_id, expense, newPaid);
+  // Mark the `newPaid`-th installment as 'paid'
+  await syncInstallmentHistoryDetail(expense.dashboard_id, expense, newPaid, true);
 
   revalidatePath('/');
 }
@@ -419,7 +447,7 @@ export async function decrementInstallment(expenseId, currentPaid, totalInstallm
 
   const { data: expense, error: fetchError } = await supabase
     .from('installment_expenses')
-    .select('id, dashboard_id, name, installment_amount, installments, paid_installments, created_at')
+    .select('id, dashboard_id, name, installment_amount, installments, paid_installments, created_at, start_month')
     .eq('id', expenseId)
     .single();
   if (fetchError) throw new Error(fetchError.message);
@@ -427,7 +455,8 @@ export async function decrementInstallment(expenseId, currentPaid, totalInstallm
   const { error } = await supabase.from('installment_expenses').update({ paid_installments: newPaid }).eq('id', expenseId);
   if (error) throw new Error(error.message);
 
-  await syncInstallmentHistoryDetail(expense.dashboard_id, expense, newPaid);
+  // Mark the `currentPaid`-th installment as 'pending'
+  await syncInstallmentHistoryDetail(expense.dashboard_id, expense, currentPaid, false);
 
   revalidatePath('/');
 }
@@ -521,10 +550,10 @@ export async function toggleMonthlyHistoryStatus(historyId, currentStatus) {
 export async function deleteOneTimeExpense(expenseId) {
   if (!supabase) return;
 
-  // Get the expense to find dashboard_id
+  // Get the expense to find dashboard_id and name
   const { data: expense, error: fetchError } = await supabase
     .from('one_time_expenses')
-    .select('id, dashboard_id')
+    .select('id, dashboard_id, name')
     .eq('id', expenseId)
     .single();
   if (fetchError) throw new Error(fetchError.message);
@@ -533,7 +562,7 @@ export async function deleteOneTimeExpense(expenseId) {
   const { error: deleteError } = await supabase.from('one_time_expenses').delete().eq('id', expenseId);
   if (deleteError) throw new Error(deleteError.message);
 
-  // Remove from monthly_history details
+  // Remove from monthly_history details by both expenseId and name
   if (expense?.dashboard_id) {
     const { data: histories } = await supabase
       .from('monthly_history')
@@ -542,7 +571,14 @@ export async function deleteOneTimeExpense(expenseId) {
 
     for (const history of histories || []) {
       const details = parseDetails(history.details);
-      const filteredDetails = details.filter((detail) => !(detail.expenseId && String(detail.expenseId) === String(expenseId)));
+      // Filter out details matching this expense by ID or name (for one-time expenses)
+      const filteredDetails = details.filter((detail) => {
+        // Remove if matches by expenseId
+        if (detail.expenseId && String(detail.expenseId) === String(expenseId)) return false;
+        // Remove if matches by name for one-time expenses
+        if (detail.kind === 'one-time' && detail.name === expense.name) return false;
+        return true;
+      });
 
       if (filteredDetails.length !== details.length) {
         const totalAmount = filteredDetails.reduce((sum, item) => {
@@ -566,10 +602,10 @@ export async function deleteOneTimeExpense(expenseId) {
 export async function deleteInstallmentExpense(expenseId) {
   if (!supabase) return;
 
-  // Get the expense to find dashboard_id
+  // Get the expense to find dashboard_id and name
   const { data: expense, error: fetchError } = await supabase
     .from('installment_expenses')
-    .select('id, dashboard_id')
+    .select('id, dashboard_id, name')
     .eq('id', expenseId)
     .single();
   if (fetchError) throw new Error(fetchError.message);
@@ -578,7 +614,7 @@ export async function deleteInstallmentExpense(expenseId) {
   const { error: deleteError } = await supabase.from('installment_expenses').delete().eq('id', expenseId);
   if (deleteError) throw new Error(deleteError.message);
 
-  // Remove from monthly_history details
+  // Remove from monthly_history details by expenseId, base name, or detailKey
   if (expense?.dashboard_id) {
     const { data: histories } = await supabase
       .from('monthly_history')
@@ -587,7 +623,18 @@ export async function deleteInstallmentExpense(expenseId) {
 
     for (const history of histories || []) {
       const details = parseDetails(history.details);
-      const filteredDetails = details.filter((detail) => !(detail.expenseId && String(detail.expenseId) === String(expenseId)));
+      // Filter out details matching this installment by ID, name, or detailKey
+      const filteredDetails = details.filter((detail) => {
+        // Remove if matches by expenseId
+        if (detail.expenseId && String(detail.expenseId) === String(expenseId)) return false;
+        // Remove if matches by detailKey (for installments, key includes month:name)
+        if (detail.detailKey && detail.kind === 'installment' && 
+            detail.detailKey.includes(expense.name)) return false;
+        // Remove if matches by base name for installments
+        if (detail.kind === 'installment' && 
+            getInstallmentBaseName(detail.name) === expense.name) return false;
+        return true;
+      });
 
       if (filteredDetails.length !== details.length) {
         const totalAmount = filteredDetails.reduce((sum, item) => {

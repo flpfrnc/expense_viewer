@@ -3,7 +3,7 @@
 import React from 'react';
 import { useLocale } from './LocaleProvider';
 
-export default function LocalizedHeading({ k, children, className = '' }) {
+export default function LocalizedHeading({ k, children, className = '', as: Tag = 'h2' }) {
   const { t } = useLocale();
-  return <h2 className={className}>{t(k) || children}</h2>;
+  return <Tag className={className}>{t(k) || children}</Tag>;
 }

@@ -7,7 +7,7 @@ import { useLocale } from './LocaleProvider';
 
 export default function HistoryAccordion({ historyItem, isReadOnly }) {
   const [isPending, startTransition] = useTransition();
-  const { t } = useLocale();
+  const { t, translateMonth } = useLocale();
 
   const detailsArray = typeof historyItem.details === 'string'
     ? JSON.parse(historyItem.details) : historyItem.details;
@@ -35,7 +35,7 @@ export default function HistoryAccordion({ historyItem, isReadOnly }) {
       <summary className="p-4 flex justify-between items-center list-none outline-none">
         <div className="flex items-center gap-3">
           <ChevronDown className="h-5 w-5 text-slate-400 group-open:rotate-180 transition-transform" />
-          <span className="font-bold text-slate-800 text-sm">{historyItem.month}</span>
+          <span className="font-bold text-slate-800 text-sm">{translateMonth(historyItem.month)}</span>
         </div>
         <div className="flex items-center gap-4">
           <span className={`font-bold ${isPaid ? 'text-green-600' : 'text-slate-800'}`}>{formatCurrency(historyItem.total_amount)}</span>

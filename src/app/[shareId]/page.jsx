@@ -33,7 +33,7 @@ export default async function ViewDashboard({ params, searchParams }) {
     <main className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-slate-800">Expense Viewer</h1>
+          <LocalizedHeading k="appTitle" as="h1" className="text-2xl font-bold text-slate-800">Expense Viewer</LocalizedHeading>
           {/* localized read-only badge */}
           <ReadOnlyBadge />
         </div>

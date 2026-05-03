@@ -7,6 +7,7 @@ const LocaleContext = createContext(null);
 const translations = {
   en: {
     appTitle: 'Expense Viewer',
+    startMonthLabel: 'Start Month (Billing Cycle)',
     shareDashboard: 'Share Dashboard',
     linkCopied: 'Link Copied!',
     addNewExpense: 'Add New Expense',
@@ -46,6 +47,7 @@ const translations = {
   },
   pt: {
     appTitle: 'Visualizador de Gastos',
+    startMonthLabel: 'Mês de Início (Fatura)',
     shareDashboard: 'Compartilhar Painel',
     linkCopied: 'Link copiado!',
     addNewExpense: 'Adicionar Despesa',
@@ -85,6 +87,37 @@ const translations = {
   }
 };
 
+const monthMap = {
+  en: {
+    'Jan/': 'Jan/',
+    'Feb/': 'Feb/',
+    'Mar/': 'Mar/',
+    'Apr/': 'Apr/',
+    'May/': 'May/',
+    'Jun/': 'Jun/',
+    'Jul/': 'Jul/',
+    'Aug/': 'Aug/',
+    'Sep/': 'Sep/',
+    'Oct/': 'Oct/',
+    'Nov/': 'Nov/',
+    'Dec/': 'Dec/',
+  },
+  pt: {
+    'Jan/': 'Jan/',
+    'Feb/': 'Fev/',
+    'Mar/': 'Mar/',
+    'Apr/': 'Abr/',
+    'May/': 'Mai/',
+    'Jun/': 'Jun/',
+    'Jul/': 'Jul/',
+    'Aug/': 'Ago/',
+    'Sep/': 'Set/',
+    'Oct/': 'Out/',
+    'Nov/': 'Nov/',
+    'Dec/': 'Dez/',
+  }
+};
+
 export function LocaleProvider({ children }) {
   const [lang, setLang] = useState('pt');
 
@@ -106,8 +139,17 @@ export function LocaleProvider({ children }) {
     return str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
   };
 
+  const translateMonth = (monthString) => {
+    for (const [enMonth, ptMonth] of Object.entries(monthMap[lang] || monthMap.pt)) {
+      if (monthString.startsWith(enMonth)) {
+        return monthString.replace(enMonth, ptMonth);
+      }
+    }
+    return monthString;
+  };
+
   return (
-    <LocaleContext.Provider value={{ lang, toggle, t }}>
+    <LocaleContext.Provider value={{ lang, toggle, t, translateMonth }}>
       {children}
     </LocaleContext.Provider>
   );
@@ -115,6 +157,6 @@ export function LocaleProvider({ children }) {
 
 export function useLocale() {
   const ctx = useContext(LocaleContext);
-  if (!ctx) return { lang: 'pt', toggle: () => {}, t: (k) => k };
+  if (!ctx) return { lang: 'pt', toggle: () => {}, t: (k) => k, translateMonth: (m) => m };
   return ctx;
 }

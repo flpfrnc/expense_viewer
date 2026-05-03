@@ -7,6 +7,7 @@ export const initialData = {
       installments: 10,
       paid_installments: 5,
       installment_amount: 362.62,
+      start_month: "Dec/2025",
     },
     {
       name: "Serviço Extra",
@@ -14,6 +15,7 @@ export const initialData = {
       installments: 12,
       paid_installments: 2,
       installment_amount: 36.00,
+      start_month: "Mar/2026",
     },
     {
       name: "Calça Emanuel",
@@ -21,6 +23,7 @@ export const initialData = {
       installments: 3,
       paid_installments: 1,
       installment_amount: 67.00,
+      start_month: "Apr/2026",
     },
     {
       name: "Reparo Motor Carro",
@@ -28,6 +31,7 @@ export const initialData = {
       installments: 2,
       paid_installments: 1,
       installment_amount: 269.16,
+      start_month: "Apr/2026",
     },
     {
       name: "Passagem Aérea",
@@ -35,6 +39,7 @@ export const initialData = {
       installments: 6,
       paid_installments: 0,
       installment_amount: 217.22,
+      start_month: "May/2026",
     },
   ],
   oneTimeExpenses: [

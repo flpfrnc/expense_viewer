@@ -6,7 +6,7 @@ import { PlusCircle, X } from 'lucide-react';
 import { useLocale } from './LocaleProvider';
 
 export default function AddExpense({ dashboardId }) {
-  const { t } = useLocale();
+  const { t, translateMonth } = useLocale();
   const [isOpen, setIsOpen] = useState(false);
   const [expenseType, setExpenseType] = useState('one-time'); // 'one-time' or 'installment'
   const [loading, setLoading] = useState(false);
@@ -16,6 +16,7 @@ export default function AddExpense({ dashboardId }) {
   const [amount, setAmount] = useState('');
   const [installments, setInstallments] = useState('');
   const [status, setStatus] = useState('pending');
+  const [startMonth, setStartMonth] = useState('May/2026');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,7 +42,8 @@ export default function AddExpense({ dashboardId }) {
           total_amount: totalAmount,
           installments: numInstallments,
           paid_installments: 0,
-          installment_amount: installmentAmount
+          installment_amount: installmentAmount,
+          start_month: startMonth
         });
       }
 
@@ -50,6 +52,7 @@ export default function AddExpense({ dashboardId }) {
       setAmount('');
       setInstallments('');
       setStatus('pending');
+      setStartMonth('May/2026');
       setIsOpen(false);
     } catch (error) {
       console.error('Failed to add expense:', error);
@@ -135,6 +138,30 @@ export default function AddExpense({ dashboardId }) {
                   placeholder="e.g., 10"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-800"
                 />
+              </div>
+            )}
+
+            {expenseType === 'installment' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('startMonthLabel')}</label>
+                <select 
+                  value={startMonth}
+                  onChange={(e) => setStartMonth(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-800 bg-white"
+                >
+                  <option value="Dec/2025">{translateMonth("Dec/2025")}</option>
+                  <option value="Jan/2026">{translateMonth("Jan/2026")}</option>
+                  <option value="Feb/2026">{translateMonth("Feb/2026")}</option>
+                  <option value="Mar/2026">{translateMonth("Mar/2026")}</option>
+                  <option value="Apr/2026">{translateMonth("Apr/2026")}</option>
+                  <option value="May/2026">{translateMonth("May/2026")}</option>
+                  <option value="Jun/2026">{translateMonth("Jun/2026")}</option>
+                  <option value="Jul/2026">{translateMonth("Jul/2026")}</option>
+                  <option value="Aug/2026">{translateMonth("Aug/2026")}</option>
+                  <option value="Sep/2026">{translateMonth("Sep/2026")}</option>
+                  <option value="Oct/2026">{translateMonth("Oct/2026")}</option>
+                  <option value="Nov/2026">{translateMonth("Nov/2026")}</option>
+                </select>
               </div>
             )}
 
