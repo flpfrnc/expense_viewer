@@ -93,13 +93,13 @@ async function syncInstallmentHistoryDetail(dashboardId, expense, paidInstallmen
 
   if (paidInstallments <= 0) {
     // When decrementing, preserve the existing installment number from history
-    // Only change status to pending and excludeFromTotal
+    // Only change status to pending, but keep includeInTotal true (it's still expected for this month)
     if (existingIndex >= 0) {
       const existingDetail = details[existingIndex];
       const pendingDetail = {
         ...existingDetail,
         status: 'pending',
-        includeInTotal: false,
+        includeInTotal: true,
       };
       details[existingIndex] = pendingDetail;
     } else {
@@ -113,7 +113,7 @@ async function syncInstallmentHistoryDetail(dashboardId, expense, paidInstallmen
         name: `${expense.name} (0/${expense.installments})`,
         amount: expense.installment_amount,
         status: 'pending',
-        includeInTotal: false,
+        includeInTotal: true,
         kind: 'installment',
         installmentNumber: 0,
         installmentTotal: expense.installments,
