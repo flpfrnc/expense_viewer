@@ -44,6 +44,8 @@ const translations = {
     noInstallmentExpensesYet: 'No installment expenses yet.',
     noOneTimeExpensesYet: 'No one-time expenses yet.',
     noHistoryYet: 'No history available yet.',
+    cannotDeleteDefault: 'Cannot delete the default dashboard.',
+    setDefault: 'Set as Default',
   },
   pt: {
     appTitle: 'Visualizador de Gastos',
@@ -84,6 +86,8 @@ const translations = {
     noInstallmentExpensesYet: 'Ainda não há despesas parceladas.',
     noOneTimeExpensesYet: 'Ainda não há despesas únicas.',
     noHistoryYet: 'Ainda não há histórico disponível.',
+    cannotDeleteDefault: 'Não é possível excluir o painel padrão.',
+    setDefault: 'Definir como Padrão',
   }
 };
 

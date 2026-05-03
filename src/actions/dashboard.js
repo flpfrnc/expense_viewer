@@ -275,11 +275,40 @@ export async function getDashboards() {
   return data || [];
 }
 
-export async function createDashboard(name) {
-  const { data, error } = await supabase.from('dashboards').insert([{ name }]).select().single();
+export async function createDashboard(name, isDefault = false) {
+  const { data, error } = await supabase.from('dashboards').insert([{ name, is_default: isDefault }]).select().single();
   if (error) throw new Error(error.message);
   revalidatePath('/');
   return data;
+}
+
+export async function deleteDashboard(dashboardId) {
+  if (!supabase) return false;
+  
+  // Clean up all related records first
+  await supabase.from('installment_expenses').delete().eq('dashboard_id', dashboardId);
+  await supabase.from('one_time_expenses').delete().eq('dashboard_id', dashboardId);
+  await supabase.from('monthly_history').delete().eq('dashboard_id', dashboardId);
+
+  const { error } = await supabase.from('dashboards').delete().eq('id', dashboardId);
+  if (error) throw new Error(error.message);
+  
+  revalidatePath('/');
+  return true;
+}
+
+export async function setDefaultDashboard(dashboardId) {
+  if (!supabase) return false;
+
+  // First, unset all dashboards
+  await supabase.from('dashboards').update({ is_default: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+  
+  // Set the new default
+  const { error } = await supabase.from('dashboards').update({ is_default: true }).eq('id', dashboardId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/');
+  return true;
 }
 
 export async function getDashboardData(dashboardId) {

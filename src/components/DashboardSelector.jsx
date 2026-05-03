@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createDashboard } from '@/actions/dashboard';
-import { PlusCircle } from 'lucide-react';
+import { createDashboard, deleteDashboard, setDefaultDashboard } from '@/actions/dashboard';
+import { PlusCircle, Star, Trash2 } from 'lucide-react';
 import { useLocale } from './LocaleProvider';
 
 export default function DashboardSelector({ dashboards, activeId }) {
@@ -12,6 +12,7 @@ export default function DashboardSelector({ dashboards, activeId }) {
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [loading, setLoading] = useState(false);
+
 
   const handleSelect = (e) => {
     if (e.target.value === 'new') {
@@ -26,7 +27,9 @@ export default function DashboardSelector({ dashboards, activeId }) {
     if (!newName.trim()) return;
     setLoading(true);
     try {
-      const newSb = await createDashboard(newName);
+      // If it's the first dashboard, make it default automatically
+      const isFirst = dashboards.length === 0;
+      const newSb = await createDashboard(newName, isFirst);
       setIsCreating(false);
       setNewName('');
       router.push(`/?dashboardId=${newSb.id}`);
@@ -36,6 +39,51 @@ export default function DashboardSelector({ dashboards, activeId }) {
       setLoading(false);
     }
   };
+
+  const handleDelete = async () => {
+    if (!activeId) return;
+    const currentActive = dashboards.find(d => d.id === activeId);
+    if (!currentActive) return;
+    
+    if (currentActive.is_default) {
+      alert(t('cannotDeleteDefault'));
+      return;
+    }
+
+    if (window.confirm(t('deleteConfirm', { name: currentActive.name }))) {
+      setLoading(true);
+      try {
+        await deleteDashboard(activeId);
+        
+        // Redirect to the default dashboard
+        const defaultDashboard = dashboards.find(d => d.is_default) || dashboards[0];
+        if (defaultDashboard) {
+          router.push(`/?dashboardId=${defaultDashboard.id}`);
+        } else {
+          router.push(`/`);
+        }
+      } catch (error) {
+        alert("Error deleting dashboard.");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleSetDefault = async () => {
+    if (!activeId) return;
+    setLoading(true);
+    try {
+      await setDefaultDashboard(activeId);
+    } catch (e) {
+      alert("Error setting default dashboard.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const currentDashboard = dashboards.find(d => d.id === activeId);
+  const isDefault = currentDashboard?.is_default;
 
   if (isCreating || dashboards.length === 0) {
     return (
@@ -78,7 +126,7 @@ export default function DashboardSelector({ dashboards, activeId }) {
           className="block w-full appearance-none bg-white border border-slate-300 text-slate-700 py-2 px-3 pr-8 rounded-lg outline-none shadow-sm focus:ring-2 focus:ring-blue-500 font-medium"
         >
           {dashboards.map(db => (
-            <option key={db.id} value={db.id}>{db.name}</option>
+            <option key={db.id} value={db.id}>{db.name} {db.is_default ? '★' : ''}</option>
           ))}
           <option value="new" className="font-bold text-blue-600">
             {t('createNew')}
@@ -88,6 +136,28 @@ export default function DashboardSelector({ dashboards, activeId }) {
           <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
         </div>
       </div>
+      
+      {activeId && (
+        <div className="flex items-center gap-2">
+          <button 
+            disabled={loading}
+            onClick={handleSetDefault}
+            title={t('setDefault')}
+            className={`p-2 rounded-lg transition-colors border ${isDefault ? 'bg-amber-100 border-amber-300 text-amber-600' : 'bg-white border-slate-200 text-slate-400 hover:text-amber-500'}`}
+          >
+            <Star className={`w-4 h-4 ${isDefault ? 'fill-current' : ''}`} />
+          </button>
+          
+          <button 
+            disabled={loading || isDefault}
+            onClick={handleDelete}
+            title={isDefault ? t('cannotDeleteDefault') : t('deleteExpense')}
+            className={`p-2 rounded-lg transition-colors border bg-white border-slate-200 ${isDefault ? 'opacity-50 cursor-not-allowed text-slate-300' : 'text-slate-400 hover:text-red-500 hover:border-red-200'}`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

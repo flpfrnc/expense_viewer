@@ -26,7 +26,10 @@ export default async function Home({ searchParams }) {
     console.error("Database connection failed or not seeded.");
   }
 
-  let activeDashboardId = searchParams.dashboardId || (dashboards.length > 0 ? dashboards[0].id : null);
+  // Find default dashboard
+  const defaultDashboard = dashboards.find(d => d.is_default) || (dashboards.length > 0 ? dashboards[0] : null);
+  
+  let activeDashboardId = searchParams.dashboardId || (defaultDashboard ? defaultDashboard.id : null);
 
   let dashboardData;
   if (activeDashboardId) {
