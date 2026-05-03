@@ -287,9 +287,25 @@ export async function getDashboardData(dashboardId) {
 
   const { data: installmentExpenses } = await supabase.from('installment_expenses').select('*').eq('dashboard_id', dashboardId);
   const { data: oneTimeExpenses } = await supabase.from('one_time_expenses').select('*').eq('dashboard_id', dashboardId);
-  const { data: monthlyHistory } = await supabase.from('monthly_history').select('*').eq('dashboard_id', dashboardId).order('sort_date', { ascending: false });
+  // Sort the timeline ascending initially (oldest to newest) to find the first pending month
+  const { data: monthlyHistoryAsc } = await supabase.from('monthly_history').select('*').eq('dashboard_id', dashboardId).order('sort_date', { ascending: true });
 
-  const summary = { totalCurrentMonth: monthlyHistory?.[0]?.total_amount || 0 };
+  let totalCurrentMonth = 0;
+  if (monthlyHistoryAsc && monthlyHistoryAsc.length > 0) {
+    // Find the first month where status is 'pending'
+    const pendingMonth = monthlyHistoryAsc.find(month => month.status === 'pending');
+    if (pendingMonth) {
+      totalCurrentMonth = pendingMonth.total_amount || 0;
+    } else {
+      // Fallback to the last month if all are paid
+      totalCurrentMonth = monthlyHistoryAsc[monthlyHistoryAsc.length - 1].total_amount || 0;
+    }
+  }
+
+  // Reverse timeline for UI descending display (newest to oldest or whichever order your UI expects, if it used to be `ascending: false` we sort it descending here)
+  const monthlyHistory = (monthlyHistoryAsc || []).reverse();
+
+  const summary = { totalCurrentMonth };
 
   return {
     summary,

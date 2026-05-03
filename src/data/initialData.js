@@ -73,11 +73,12 @@ export const initialData = {
     },
     {
       month: "Mar/2026",
-      total_amount: 398.62,
+      total_amount: 434.62,
       status: "paid",
       details: [
         { name: "Mecânico (4/10)", amount: 362.62 },
         { name: "Serviço Extra (1/12)", amount: 36.0 },
+        { name: "Retorno Uber", amount: 36.0 },
       ],
     },
     {
@@ -93,16 +94,106 @@ export const initialData = {
     },
     {
       month: "May/2026",
-      total_amount: 961.85,
+      total_amount: 962.00,
       status: "pending",
       details: [
         { name: "Mecânico (6/10)", amount: 362.62 },
         { name: "Reparo Motor Carro (2/2)", amount: 269.16 },
-        { name: "Passagem Aérea (1/6)", amount: 217.07 },
+        { name: "Passagem Aérea (1/6)", amount: 217.22 },
         { name: "Calça Emanuel (2/3)", amount: 67.0 },
         { name: "Serviço Extra (3/12)", amount: 36.0 },
         { name: "Teste", amount: 10.0, status: "pending" },
       ],
     },
+    {
+      month: "Jun/2026",
+      total_amount: 682.84,
+      status: "pending",
+      details: [
+        { name: "Mecânico (7/10)", amount: 362.62 },
+        { name: "Passagem Aérea (2/6)", amount: 217.22 },
+        { name: "Calça Emanuel (3/3)", amount: 67.0 },
+        { name: "Serviço Extra (4/12)", amount: 36.0 },
+      ],
+    },
+    {
+      month: "Jul/2026",
+      total_amount: 615.84,
+      status: "pending",
+      details: [
+        { name: "Mecânico (8/10)", amount: 362.62 },
+        { name: "Passagem Aérea (3/6)", amount: 217.22 },
+        { name: "Serviço Extra (5/12)", amount: 36.0 },
+      ],
+    },
+    {
+      month: "Aug/2026",
+      total_amount: 615.84,
+      status: "pending",
+      details: [
+        { name: "Mecânico (9/10)", amount: 362.62 },
+        { name: "Passagem Aérea (4/6)", amount: 217.22 },
+        { name: "Serviço Extra (6/12)", amount: 36.0 },
+      ],
+    },
+    {
+      month: "Sep/2026",
+      total_amount: 615.84,
+      status: "pending",
+      details: [
+        { name: "Mecânico (10/10)", amount: 362.62 },
+        { name: "Passagem Aérea (5/6)", amount: 217.22 },
+        { name: "Serviço Extra (7/12)", amount: 36.0 },
+      ],
+    },
+    {
+      month: "Oct/2026",
+      total_amount: 253.22,
+      status: "pending",
+      details: [
+        { name: "Passagem Aérea (6/6)", amount: 217.22 },
+        { name: "Serviço Extra (8/12)", amount: 36.0 },
+      ],
+    },
+    {
+      month: "Nov/2026",
+      total_amount: 36.00,
+      status: "pending",
+      details: [
+        { name: "Serviço Extra (9/12)", amount: 36.00 },
+      ],
+    },
+    {
+      month: "Dec/2026",
+      total_amount: 36.00,
+      status: "pending",
+      details: [
+        { name: "Serviço Extra (10/12)", amount: 36.00 },
+      ],
+    },
+    {
+      month: "Jan/2027",
+      total_amount: 36.00,
+      status: "pending",
+      details: [
+        { name: "Serviço Extra (11/12)", amount: 36.00 },
+      ],
+    },
+    {
+      month: "Feb/2027",
+      total_amount: 36.00,
+      status: "pending",
+      details: [
+        { name: "Serviço Extra (12/12)", amount: 36.00 },
+      ],
+    },
   ],
 };
+
+// Calculate summary total dynamically for mock data based on the first pending month
+const pendingMonth = initialData.timeline.find(m => m.status === 'pending');
+if (pendingMonth) {
+  initialData.summary.totalCurrentMonth = pendingMonth.total_amount;
+} else if (initialData.timeline.length > 0) {
+  initialData.summary.totalCurrentMonth = initialData.timeline[initialData.timeline.length - 1].total_amount;
+}

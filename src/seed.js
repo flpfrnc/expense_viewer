@@ -59,12 +59,17 @@ async function seedDatabase() {
     .insert(initialData.oneTimeExpenses.map(item => ({ ...item, dashboard_id: dashboardId })));
   if (errOneTime) console.error("Error one-time:", errOneTime);
 
+  const monthMap = {
+    Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+    Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12'
+  };
+
   // 3. Insert Monthly History (Using JS stringify to ensure JSONB is passed safely depending on Supabase client setup)
   const historyInserts = initialData.timeline.map((item, index) => {
-    // Generate a sort_date to keep it cronological (fake dates just for preserving order)
-    const monthIndex = (12 - initialData.timeline.length) + index + 1;
-    const paddedMonth = monthIndex.toString().padStart(2, '0');
-    const sortDateStr = `2026-${paddedMonth}-01`;
+    // Generate a sort_date from the month string (e.g. "Dec/2025" -> "2025-12-01")
+    const [mmm, yyyy] = item.month.split('/');
+    const paddedMonth = monthMap[mmm] || '01';
+    const sortDateStr = `${yyyy}-${paddedMonth}-01`;
     const normalizedDetails = (item.details || []).map((detail) => toHistoryDetail(detail, item.month, item.status));
 
     return {
