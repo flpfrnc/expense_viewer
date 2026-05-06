@@ -389,6 +389,27 @@ export async function addInstallmentExpense(dashboardId, expense) {
     .select();
 
   if (error) throw new Error(error.message);
+
+  const firstInstallmentData = data[0];
+  if (firstInstallmentData) {
+    for (let i = 1; i <= firstInstallmentData.installments; i++) {
+      const targetMonth = getTargetMonthForInstallment(firstInstallmentData.start_month, i - 1);
+      const pendingDetail = {
+        expenseId: firstInstallmentData.id,
+        detailKey: `installment:${targetMonth.month}:${firstInstallmentData.name}:${i}`,
+        name: `${firstInstallmentData.name} (${i}/${firstInstallmentData.installments})`,
+        amount: firstInstallmentData.installment_amount,
+        status: 'pending',
+        includeInTotal: true,
+        kind: 'installment',
+        installmentNumber: i,
+        installmentTotal: firstInstallmentData.installments,
+      };
+
+      await upsertMonthlyHistoryDetail(dashboardId, targetMonth, pendingDetail, { status: 'pending' });
+    }
+  }
+
   revalidatePath('/');
   return data;
 }
